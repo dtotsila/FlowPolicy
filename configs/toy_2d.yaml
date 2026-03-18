@@ -14,8 +14,8 @@ model:
 training:
   batch_size: 128
   epochs: 500
-  lr: 1e-3
-  device: "cuda" # or "cpu"
+  lr: 1.0e-3
+  device: "cuda:0"
 
 inference:
   num_steps: 15

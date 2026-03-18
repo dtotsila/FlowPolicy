@@ -9,17 +9,17 @@ dataset:
   state_dim: 2
 
 model:
-  hidden_dim: 128
+  hidden_dim: 64
   num_layers: 4
   num_heads: 4
 
 training:
-  batch_size: 16
+  batch_size: 128
   epochs: 500
   lr: 1.0e-3
-  device: "cuda"
+  device: "cuda:0"
 
 inference:
-  num_steps: 8
+  num_steps: 16
   sampling_steps: 20
   k_step: 4

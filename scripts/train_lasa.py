@@ -4,12 +4,14 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.lasa_dataset import LasaDataset
 from models.dit import DiTPolicy
 from policies.flow_matcher import FlowMatcher
 from utils.seed import set_seed
 from utils.visualization import plot_lasa_trajectories
+from utils.normalizer import DictNormalizer
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -30,6 +32,14 @@ def main():
         chunk_size=config['dataset']['chunk_size'],
         demo_indices=train_indices
     )
+
+    # Fit normalizer
+    normalizer = DictNormalizer()
+    all_states = torch.stack([s for s, _ in train_dataset])
+    all_actions = torch.stack([a for _, a in train_dataset])
+    normalizer.fit('state', all_states)
+    normalizer.fit('action', all_actions)
+
     dataloader = DataLoader(train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
 
     # Init Model & Policy
@@ -50,11 +60,13 @@ def main():
         total_loss = 0
         for state, action_chunk in dataloader:
             state, action_chunk = state.to(device), action_chunk.to(device)
+            state = normalizer.normalize('state', state)
+            action_chunk = normalizer.normalize('action', action_chunk)
             optimizer.zero_grad()
             loss = policy.compute_loss(action_chunk, state)
             loss.backward()
             # Add this line right before optimizer.step()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             total_loss += loss.item()
 
@@ -63,7 +75,11 @@ def main():
 
     # Save Weights
     os.makedirs("weights", exist_ok=True)
-    torch.save(model.state_dict(), f"weights/{config['project_name']}.pth")
+    torch.save({
+        "model": model.state_dict(),
+        "normalizer": normalizer.state_dict()
+    }, f"weights/{config['project_name']}.pt")
+
     print(f"Saved weights to weights/{config['project_name']}.pth")
 
     # Save Ground Truth Visualization
