@@ -1,4 +1,3 @@
-# scripts/train_toy.py
 import os
 import sys
 import yaml

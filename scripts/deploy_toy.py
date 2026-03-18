@@ -1,4 +1,3 @@
-# scripts/deploy_toy.py
 import sys
 import os
 import yaml

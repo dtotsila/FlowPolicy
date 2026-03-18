@@ -1,4 +1,3 @@
-# scripts/train_lasa.py
 import sys
 import os
 import yaml

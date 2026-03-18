@@ -1,4 +1,3 @@
-# scripts/deploy_lasa.py
 import sys
 import os
 import yaml
