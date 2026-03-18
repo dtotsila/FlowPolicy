@@ -1,0 +1,23 @@
+project_name: "dit_toy"
+
+dataset:
+  num_samples: 2000
+  chunk_size: 16
+  action_dim: 2
+  state_dim: 2
+
+model:
+  hidden_dim: 64
+  num_layers: 4
+  num_heads: 4
+
+training:
+  batch_size: 128
+  epochs: 500
+  lr: 1e-3
+  device: "cuda" # or "cpu"
+
+inference:
+  num_steps: 15
+  sampling_steps: 20
+  k_step: 8

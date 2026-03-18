@@ -1,0 +1,26 @@
+# configs/lasa.yaml
+project_name: "lasa_angle"
+
+dataset:
+  pattern_name: "Angle"
+  train_indices: [0, 1, 2, 3]
+  test_indices: [4, 5, 6]
+  chunk_size: 32
+  action_dim: 2
+  state_dim: 2
+
+model:
+  hidden_dim: 128
+  num_layers: 4
+  num_heads: 4
+
+training:
+  batch_size: 16
+  epochs: 500
+  lr: 1.0e-3
+  device: "cuda"
+
+inference:
+  num_steps: 8
+  sampling_steps: 20
+  k_step: 4
