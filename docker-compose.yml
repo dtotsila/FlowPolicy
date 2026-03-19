@@ -6,6 +6,9 @@ services:
     image: flow_matching_robotics
     volumes:
       - ./:/workspace
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY}
+      - CUDA_VISIBLE_DEVICES=0
     deploy:
       resources:
         reservations:

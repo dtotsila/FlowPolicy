@@ -18,6 +18,5 @@ training:
   device: "cuda:0"
 
 inference:
-  num_steps: 15
-  sampling_steps: 20
+  sampling_steps: 15
   k_step: 8

@@ -34,7 +34,7 @@ class FlowMatcher(nn.Module):
         return loss
 
     @torch.no_grad()
-    def sample(self, state, chunk_size, action_dim, num_steps=50):
+    def sample(self, state, chunk_size, action_dim, sampling_steps=50):
         """Generate actions from pure nouse using an Euler ODE solver."""
         batch_size = state.shape[0]
         device = state.device
@@ -43,12 +43,12 @@ class FlowMatcher(nn.Module):
         x_t = torch.randn((batch_size, chunk_size, action_dim), device=device)
 
         # Set the time step size (dt
-        dt = 1.0 / num_steps
+        dt = 1.0 / sampling_steps
 
         # Euler integration loop
-        for i in range(num_steps):
+        for i in range(sampling_steps):
             # Current time t
-            t = torch.ones((batch_size, 1), device=device) * (i / num_steps)
+            t = torch.ones((batch_size, 1), device=device) * (i / sampling_steps)
 
             # Predict Velocity
             v_t = self.model(x_t, state, t)

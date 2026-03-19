@@ -5,3 +5,4 @@ pyyaml
 einops
 opencv-python
 pylasadataset
+wandb

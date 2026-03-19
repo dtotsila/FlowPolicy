@@ -20,7 +20,7 @@ def receding_horizon(policy, initial_state, steps, chunk_size, k, num_inference_
     current_state = initial_state
 
     for i in range(0, steps, k):
-        chunk = policy.sample(current_state, chunk_size, action_dim=2, num_steps=num_inference_steps).squeeze(0)
+        chunk = policy.sample(current_state, chunk_size, action_dim=2, sampling_steps=num_inference_steps).squeeze(0)
         executed_k = chunk[:k].cpu().numpy()
         executed_actions.append(executed_k)
         current_state = torch.tensor(executed_k[-1:], dtype=torch.float32).to(initial_state.device)
@@ -36,7 +36,7 @@ def temporal_ensembling(policy, initial_state, steps, chunk_size, num_inference_
     action_buffer = [[] for _ in range(steps + chunk_size)]
 
     for t in range(steps):
-        chunk = policy.sample(current_state, chunk_size, action_dim=2, num_steps=num_inference_steps).squeeze(0).cpu().numpy()
+        chunk = policy.sample(current_state, chunk_size, action_dim=2, sampling_steps=num_inference_steps).squeeze(0).cpu().numpy()
         all_predicted_chunks.append(chunk)
 
         for offset in range(chunk_size):
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     action_dim = config['dataset']['action_dim']
     state_dim = config['dataset']['state_dim']
     steps = config['inference']['sampling_steps']
-    num_inference_steps = config['inference']['num_steps']
+    num_inference_steps = config['inference']['sampling_steps']
 
     # 1. Load the trained model
     model = DiTPolicy(
