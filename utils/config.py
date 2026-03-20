@@ -6,7 +6,7 @@ def load_config(path: str)-> dict:
 
 def build_run_name(config: dict) -> str:
     dataset_name = config["dataset"].get("name", "lasa").lower()
-    pattern = config["dataset"]["pattern_name"]
+    pattern = config["dataset"]["pattern_names"]
     hidden = config["model"]["hidden_dim"]
     lr = config["training"]["lr"]
     name = f"{dataset_name}_{pattern}_h{hidden}_lr{lr}"

@@ -19,11 +19,11 @@ from data.datasets import build_datasets
 def train_one_epoch(policy, loader, normalizer, optimizer, device) -> float:
     policy.train()
     total_loss = 0.0
-    for state, action_chunk in loader:
+    for state, action_chunk, label in loader:
         state = normalizer.normalize('state', state.to(device))
         action_chunk = normalizer.normalize('action', action_chunk.to(device))
         optimizer.zero_grad()
-        loss = policy.compute_loss(action_chunk, state)
+        loss = policy.compute_loss(action_chunk, state, condition=label.to(device))
         loss.backward()
         optimizer.step()
         total_loss = + loss.item()
@@ -34,10 +34,10 @@ def train_one_epoch(policy, loader, normalizer, optimizer, device) -> float:
 def evaluate(policy, loader, normalizer, device) -> float:
     policy.eval()
     total_loss = 0.0
-    for state, action_chunk in loader:
+    for state, action_chunk, label in loader:
         state = normalizer.normalize('state', state.to(device))
         action_chunk = normalizer.normalize('action', action_chunk.to(device))
-        loss = policy.compute_loss(action_chunk, state)
+        loss = policy.compute_loss(action_chunk, state, condition=label.to(device))
         total_loss += loss.item()
     return total_loss / len(loader)
 
@@ -84,12 +84,13 @@ def main():
 
     # ── Model ───────────────────────────────────────────────────────────────
     model = DiTPolicy(
-        action_dim=config["dataset"]["action_dim"],
-        state_dim=config["dataset"]["state_dim"],
-        chunk_size=config["dataset"]["chunk_size"],
-        hidden_dim=config["model"]["hidden_dim"],
-        num_layers=config["model"]["num_layers"],
-        num_heads=config["model"].get("num_heads", 4),
+        action_dim=config['dataset']['action_dim'],
+        state_dim=config['dataset']['state_dim'],
+        chunk_size=config['dataset']['chunk_size'],
+        hidden_dim=config['model']['hidden_dim'],
+        num_layers=config['model']['num_layers'],
+        num_heads=config['model']['num_heads'],
+        num_classes=config['model'].get('num_classes', None) # NEW
     ).to(device)
 
     policy = FlowMatcher(model).to(device)
@@ -132,7 +133,7 @@ def main():
         os.makedirs("results", exist_ok=True)
         img_path = f"results/{run_name}_base_data.png"
         plot_lasa_trajectories(
-            config["dataset"]["pattern_name"],
+            config["dataset"]["pattern_names"],
             config["dataset"]["train_indices"],
             config["dataset"]["test_indices"],
             save_path=img_path,

@@ -52,8 +52,8 @@ class DictNormalizer:
 def build_normalizer(train_dataset) -> DictNormalizer:
     """Fit a DictNormalizer on training data only."""
     normalizer = DictNormalizer()
-    all_states = torch.stack([s for s, _ in train_dataset])
-    all_actions = torch.stack([a for _, a in train_dataset])
+    all_states = torch.stack([item[0] for item in train_dataset])
+    all_actions = torch.stack([item[1] for item in train_dataset])
     normalizer.fit("state", all_states)
     normalizer.fit("action", all_actions)
     return normalizer

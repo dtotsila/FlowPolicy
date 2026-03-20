@@ -6,55 +6,36 @@ class FlowMatcher(nn.Module):
         super().__init__()
         self.model = model
 
-    def compute_loss(self, x_1, state):
-        """Computes the Flow Matching MSE loss during training."""
-        batch_size = x_1.shape[0]
-        device = x_1.device
+    def compute_loss(self, x1, state, condition=None):
+        B = x1.shape[0]
+        t = torch.rand(B, device=x1.device)
+        x0 = torch.randn_like(x1)
 
-        # Sample random noise x_0
-        x_0 = torch.randn_like(x_1)
+        t_expanded = t.view(B, 1, 1)
+        xt = (1 - t_expanded) * x0 + t_expanded * x1
 
-        # Sample random time t in [0, 1]
-        t = torch.rand((batch_size, 1), device=device)
+        target_flow = x1 - x0
 
-        # Reshape t to match x_0 dimensions for broadcasting : [B, 1, 1]
-        t_expanded = t.unsqueeze(-1)
+        # Pass condition to the model
+        predicted_flow = self.model(xt, state, t, condition=condition)
 
-        # Compute x_t: straight line path between x_0 and x_1
-        x_t = (1 - t_expanded) * x_0 + t_expanded * x_1
-
-        # Compute the target vector field (velocity)
-        target_velocity = x_1 - x_0
-
-        # Predict the vector field using the neural network
-        predicted_velocity = self.model(x_t, state, t)
-
-        # MSE loss
-        loss = nn.functional.mse_loss(predicted_velocity, target_velocity)
+        loss = torch.nn.functional.mse_loss(predicted_flow, target_flow)
         return loss
 
     @torch.no_grad()
-    def sample(self, state, chunk_size, action_dim, sampling_steps=50):
-        """Generate actions from pure nouse using an Euler ODE solver."""
-        batch_size = state.shape[0]
+    def sample(self, state, chunk_size, action_dim, sampling_steps=10, condition=None):
+        B = state.shape[0]
         device = state.device
 
-        # Start with pure gaussian noise at t=9
-        x_t = torch.randn((batch_size, chunk_size, action_dim), device=device)
-
-        # Set the time step size (dt
+        x = torch.randn(B, chunk_size, action_dim, device=device)
         dt = 1.0 / sampling_steps
 
-        # Euler integration loop
         for i in range(sampling_steps):
-            # Current time t
-            t = torch.ones((batch_size, 1), device=device) * (i / sampling_steps)
+            t = torch.full((B,), i * dt, device=device)
 
-            # Predict Velocity
-            v_t = self.model(x_t, state, t)
+            # Pass condition to the model
+            v = self.model(x, state, t, condition=condition)
 
-            # Integrate
-            x_t = x_t + v_t * dt
+            x = x + v * dt
 
-        # Final x_t at t =1 is our generated action chunk
-        return x_t
+        return x

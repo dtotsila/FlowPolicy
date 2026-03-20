@@ -1,24 +1,10 @@
 import torch
 import torch.nn as nn
 import math
-
-class SinusoidalPositionEmbedding(nn.Module):
-    """Encodes the continuous time step t into a high-dimensional vector."""
-    def __init__(self, dim):
-        super().__init__()
-        self.dim = dim
-
-    def forward(self, t):
-        device = t.device
-        half_dim = self.dim // 2
-        embeddings = math.log(10000) / (half_dim - 1)
-        embeddings = torch.exp(torch.arange(half_dim, device=device) * -embeddings)
-        embeddings = t.unsqueeze(-1) * embeddings.unsqueeze(0)
-        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
-        return embeddings
+from models.embeddings import SinusoidalPositionEmbedding
 
 class DiTPolicy(nn.Module):
-    def __init__(self, action_dim, state_dim, chunk_size, hidden_dim=256, num_layers=4, num_heads=4):
+    def __init__(self, action_dim, state_dim, chunk_size, hidden_dim=256, num_layers=4, num_heads=4, num_classes=None):
         super().__init__()
 
         # 1. Input Embeddings
@@ -32,6 +18,11 @@ class DiTPolicy(nn.Module):
             nn.SiLU(),
             nn.Linear(hidden_dim, hidden_dim)
         )
+
+        # Optional Class Embedding for Multi-Tasking
+        self.num_classes = num_classes
+        if num_classes is not None:
+            self.class_emb = nn.Embedding(num_classes, hidden_dim)
 
         # Learned positional embedding for the sequence of actions
         self.pos_emb = nn.Parameter(torch.zeros(1, chunk_size, hidden_dim))
@@ -48,7 +39,7 @@ class DiTPolicy(nn.Module):
         # 3. Output Projection
         self.output_proj = nn.Linear(hidden_dim, action_dim)
 
-    def forward(self, noisy_actions, state, t):
+    def forward(self, noisy_actions, state, t, condition=None):
         # Format t to ensure it's [B, 1]
         if t.dim() == 1:
             t = t.unsqueeze(1)
@@ -58,8 +49,16 @@ class DiTPolicy(nn.Module):
         s_emb = self.state_emb(state)                     # [B, hidden_dim]
         t_emb = self.time_emb(t).squeeze(1)               # [B, hidden_dim]
 
-        # Combine state and time into a single conditioning token
-        cond_token = (s_emb + t_emb).unsqueeze(1)         # [B, 1, hidden_dim]
+        # Combine state and time
+        cond_sum = s_emb + t_emb
+
+        # Add class conditioning if provided
+        if self.num_classes is not None and condition is not None:
+            c_emb = self.class_emb(condition)             # [B, hidden_dim]
+            cond_sum += c_emb
+
+        # Create single conditioning token
+        cond_token = cond_sum.unsqueeze(1)                # [B, 1, hidden_dim]
 
         # Prepend the condition token to the action sequence
         seq = torch.cat([cond_token, x], dim=1)           # [B, 1 + chunk_size, hidden_dim]

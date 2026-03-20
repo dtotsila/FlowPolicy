@@ -3,8 +3,8 @@ import numpy as np
 from torch.utils.data import Dataset
 import pyLasaDataset as lasa
 
-class LasaDataset(Dataset):
-    def __init__(self, pattern_name="Angle", chunk_size=16, demo_indices=None, include_velocity=False, include_acceleration=False):
+class MultiTaskLasaDataset(Dataset):
+    def __init__(self, pattern_names=["Angle", "Sine", "Line"], chunk_size=16, demo_indices=None, include_velocity=False, include_acceleration=False):
         self.chunk_size = chunk_size
         self.include_velocity = include_velocity
         self.include_acceleration = include_acceleration
@@ -13,45 +13,59 @@ class LasaDataset(Dataset):
         if demo_indices is None:
             demo_indices = list(range(7))
 
-        pattern_data = getattr(lasa.DataSet, pattern_name)
+        for class_id, pattern_names in enumerate(pattern_names):
+            pattern_data = getattr(lasa.DataSet, pattern_names)
 
-        for idx in demo_indices:
-            demo = pattern_data.demos[idx]
-            pos = demo.pos.T
-            vel = demo.vel.T
-            acc = demo.acc.T
+            for idx in demo_indices:
+                demo = pattern_data.demos[idx]
+                pos = demo.pos.T
+                vel = demo.vel.T
+                acc = demo.acc.T
 
-            for i in range(len(pos) - chunk_size - 1):
-                # Build state dynamically based on flags
-                state_components = [pos[i]]
-                chunk_components = [pos[i+1:i+1+chunk_size]]
-                if self.include_velocity:
-                    state_components.append(vel[i])
-                    chunk_components.append(vel[i+1:i+1+chunk_size])
-                if self.include_acceleration:
-                    state_components.append(acc[i])
-                    chunk_components.append(acc[i+1:i+1+chunk_size])
+                for i in range(len(pos) - chunk_size - 1):
+                    state_components = [pos[i]]
+                    chunk_components = [pos[i+1:i+1+chunk_size]]
 
-                state = np.concatenate(state_components)
-                chunk = np.concatenate(chunk_components, axis=1)
+                    if self.include_velocity:
+                        state_components.append(vel[i])
+                        chunk_components.append(vel[i+1:i+1+chunk_size])
+                    if self.include_acceleration:
+                        state_components.append(acc[i])
+                        chunk_components.append(acc[i+1:i+1+chunk_size])
 
+                    state = np.concatenate(state_components)
+                    chunk = np.concatenate(chunk_components, axis=1)
 
-                self.samples.append((state, chunk, pos[i]))
+                    # Store the label separately!
+                    self.samples.append((state, chunk, class_id))
 
+    # Fixed indentation
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        state, chunk, current_pos = self.samples[idx]
+        # Unpack the label
+        state, chunk, label = self.samples[idx]
 
         state_tensor = torch.tensor(state, dtype=torch.float32)
         chunk_tensor = torch.tensor(chunk, dtype=torch.float32)
+        # Use torch.long for categorical labels (required by nn.Embedding)
+        label_tensor = torch.tensor(label, dtype=torch.long)
 
-
-        # Delta is always computed against position only (for now)
         delta_chunk = chunk_tensor - state_tensor
 
-        return state_tensor, delta_chunk
+        return state_tensor, delta_chunk, label_tensor
+
+class LasaDataset(MultiTaskLasaDataset):
+    def __init__(self, pattern_names="Angle", chunk_size=16, demo_indices=None, include_velocity=False, include_acceleration=False):
+        super().__init__(
+            pattern_names=[pattern_names],
+            chunk_size=chunk_size,
+            demo_indices=demo_indices,
+            include_velocity=include_velocity,
+            include_acceleration=include_acceleration
+        )
+
 
 class ToyCircleDataset(Dataset):
     def __init__(self, num_samples=2000, chunk_size=16):
@@ -84,23 +98,36 @@ class ToyCircleDataset(Dataset):
 
         return state, delta_chunk
 
+
+
 def build_datasets(config: dict):
     dataset_name = config["dataset"].get("name", "lasa").lower()
 
-    if dataset_name == "lasa":
+    if dataset_name == "multitask_lasa":
         kwargs = dict(
-            pattern_name=config["dataset"]["pattern_name"],
+            pattern_names=config["dataset"]["pattern_names"], # Plural
+            chunk_size=config["dataset"]["chunk_size"],
+            include_velocity=config["dataset"].get("use_velocity", False),
+            include_acceleration=config["dataset"].get("use_acceleration", False),
+        )
+        train_dataset = MultiTaskLasaDataset(demo_indices=config["dataset"]["train_indices"], **kwargs)
+        val_dataset = MultiTaskLasaDataset(demo_indices=config["dataset"]["val_indices"], **kwargs)
+
+    elif dataset_name == "lasa":
+        kwargs = dict(
+            pattern_names=config["dataset"]["pattern_names"], # Singular
             chunk_size=config["dataset"]["chunk_size"],
             include_velocity=config["dataset"].get("use_velocity", False),
             include_acceleration=config["dataset"].get("use_acceleration", False),
         )
         train_dataset = LasaDataset(demo_indices=config["dataset"]["train_indices"], **kwargs)
         val_dataset = LasaDataset(demo_indices=config["dataset"]["val_indices"], **kwargs)
+
     else:
         train_dataset = ToyCircleDataset(
             num_samples=config["dataset"].get("num_samples", 2000),
             chunk_size=config["dataset"]["chunk_size"],
         )
-        val_dataset = train_dataset  # toy dataset has no separate split
+        val_dataset = train_dataset
 
     return train_dataset, val_dataset
