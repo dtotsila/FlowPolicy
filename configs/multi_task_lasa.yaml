@@ -2,7 +2,7 @@ project_name: "multi_task_lasa"
 
 dataset:
   name: "multitask_lasa"
-  pattern_names: ["GShape", "Sine", "Line", "Trapezoid", "PShape", "WShape",  "Khamesh", "JShape", "CShape", "Multi_Models_1"]
+  pattern_names: ["GShape", "Sine"]
   train_indices: [0, 2, 4]
   val_indices: [1]
   test_indices: [3, 6]
@@ -25,5 +25,5 @@ training:
   device: "cuda"
   weight_decay: 0.01
 inference:
-  sampling_steps: 8
-  k_step: 1
+  sampling_steps: 5
+  k_step: 2

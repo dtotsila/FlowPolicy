@@ -3,12 +3,18 @@ services:
     build:
       context: .
       dockerfile: .ci/Dockerfile
+      args:
+        - USER_ID=${USER_ID:-1000}
+        - GROUP_ID=${GROUP_ID:-1000}
     image: flow_matching_robotics
     volumes:
       - ./:/workspace
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    hostname: with_the_flow
     environment:
       - WANDB_API_KEY=${WANDB_API_KEY}
       - CUDA_VISIBLE_DEVICES=0
+      - TERM=xterm-256color
     deploy:
       resources:
         reservations:

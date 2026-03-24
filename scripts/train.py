@@ -12,7 +12,7 @@ from policies.flow_matcher import FlowMatcher
 from utils.config import load_config, build_run_name
 from utils.seed import set_seed
 from utils.visualization import plot_lasa_trajectories
-from utils.normalizer import build_normalizer
+from data.normalizer import build_normalizer
 from data.datasets import build_datasets
 
 

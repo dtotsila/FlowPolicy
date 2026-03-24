@@ -6,9 +6,9 @@ from models.embeddings import SinusoidalPositionEmbedding
 class DiTPolicy(nn.Module):
     def __init__(self, action_dim, state_dim, chunk_size, hidden_dim=256, num_layers=4, num_heads=4, num_classes=None):
         super().__init__()
-
+        self.action_dim = action_dim
         # 1. Input Embeddings
-        self.action_emb = nn.Linear(action_dim, hidden_dim)
+        self.action_emb = nn.Linear(self.action_dim, hidden_dim)
         self.state_emb = nn.Linear(state_dim, hidden_dim)
 
         # Time gets a sinusoidal embedding followed by an MLP
@@ -37,7 +37,7 @@ class DiTPolicy(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
         # 3. Output Projection
-        self.output_proj = nn.Linear(hidden_dim, action_dim)
+        self.output_proj = nn.Linear(hidden_dim, self.action_dim)
 
     def forward(self, noisy_actions, state, t, condition=None):
         # Format t to ensure it's [B, 1]
@@ -68,4 +68,4 @@ class DiTPolicy(nn.Module):
 
         # Drop the condition token and project back to action space
         action_out = out_seq[:, 1:, :]                    # [B, chunk_size, hidden_dim]
-        return self.output_proj(action_out)               # [B, chunk_size, action_dim]
+        return self.output_proj(action_out)               # [B, chunk_size, self.action_dim]

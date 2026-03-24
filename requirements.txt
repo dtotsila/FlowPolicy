@@ -6,3 +6,4 @@ einops
 opencv-python
 pylasadataset
 wandb
+torchdiffeq

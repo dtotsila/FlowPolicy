@@ -24,5 +24,5 @@ training:
   device: "cuda"
   weight_decay: 0.
 inference:
-  sampling_steps: 8
+  sampling_steps: 4
   k_step: 4
