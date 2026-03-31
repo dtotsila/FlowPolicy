@@ -13,8 +13,8 @@ class MultiTaskLasaDataset(Dataset):
         if demo_indices is None:
             demo_indices = list(range(7))
 
-        for class_id, pattern_names in enumerate(pattern_names):
-            pattern_data = getattr(lasa.DataSet, pattern_names)
+        for class_id, pattern_name in enumerate(pattern_names):
+            pattern_data = getattr(lasa.DataSet, pattern_name)
 
             for idx in demo_indices:
                 demo = pattern_data.demos[idx]
@@ -65,40 +65,6 @@ class LasaDataset(MultiTaskLasaDataset):
             include_velocity=include_velocity,
             include_acceleration=include_acceleration
         )
-
-
-class ToyCircleDataset(Dataset):
-    def __init__(self, num_samples=2000, chunk_size=16):
-        self.num_samples = num_samples
-        self.chunk_size = chunk_size
-        self.data = self._generate_data()
-
-    def _generate_data(self):
-        data = []
-        for _ in range(self.num_samples):
-            start_angle = torch.rand(1) * 2 * np.pi
-            # Generate chunk_size + 1 to account for the initial state
-            time_steps = torch.linspace(0, 2 * np.pi, self.chunk_size + 1) + start_angle
-            chunk = torch.stack([torch.cos(time_steps), torch.sin(time_steps)], dim=1)
-            data.append(chunk)
-
-        data = torch.stack(data)
-        jitter = torch.randn_like(data) * 0.05
-        return data + jitter
-
-    def __len__(self):
-        return self.num_samples
-
-    def __getitem__(self, idx):
-        full_chunk = self.data[idx]
-        state = full_chunk[0]
-        chunk = full_chunk[1:] # The actual future steps
-
-        delta_chunk = chunk - state
-
-        return state, delta_chunk
-
-
 
 def build_datasets(config: dict):
     dataset_name = config["dataset"].get("name", "lasa").lower()

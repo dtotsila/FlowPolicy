@@ -40,7 +40,7 @@ def plot_streamlines(ax, policy, normalizer, pattern_data, device, chunk_size, n
             # Create batched condition
             cond = torch.full((p.shape[0],), class_id, dtype=torch.long, device=device) if class_id is not None else None
 
-            norm_chunk = policy.sample(norm_p, chunk_size, action_dim=2, sampling_steps=num_inference_steps, condition=cond)
+            norm_chunk = policy.sample(norm_p, chunk_size, sampling_steps=num_inference_steps, condition=cond)
             chunk = normalizer.denormalize('action', norm_chunk).cpu().numpy()
 
             U[i:i+batch_size] = chunk[:, 0, 0]
@@ -50,7 +50,7 @@ def plot_streamlines(ax, policy, normalizer, pattern_data, device, chunk_size, n
                   color='lightgray', density=1.5, linewidth=0.8, arrowsize=1.0, zorder=0)
 
 
-def batched_closed_loop_rollout(policy, normalizer, batched_initial_states, steps, chunk_size, num_inference_steps, action_dim, class_id=None, k=1, exp_weight=0.01):
+def batched_closed_loop_rollout(policy, normalizer, batched_initial_states, steps, chunk_size, num_inference_steps, class_id=None, k=1, exp_weight=0.01):
     executed_actions = []
     current_states = batched_initial_states
 
@@ -63,7 +63,7 @@ def batched_closed_loop_rollout(policy, normalizer, batched_initial_states, step
         norm_states = normalizer.normalize('state', current_states)
 
         # Pass the condition to the sampler
-        norm_delta_chunk = policy.sample(norm_states, chunk_size, action_dim=action_dim, sampling_steps=num_inference_steps, condition=cond)
+        norm_delta_chunk = policy.sample(norm_states, chunk_size, sampling_steps=num_inference_steps, condition=cond)
         delta_chunk = normalizer.denormalize('action', norm_delta_chunk).cpu().numpy()
 
         absolute_chunk = delta_chunk + current_states.cpu().numpy()[:, np.newaxis, :]
@@ -106,7 +106,6 @@ def evaluate_split(indices, ax, title, policy, normalizer, pattern_data, config,
     batched_actions = batched_closed_loop_rollout(
         policy, normalizer, batched_start_states, steps,
         chunk_size, config['inference']['sampling_steps'],
-        action_dim=config['dataset']['state_dim'],
         class_id=class_id, # Pass class_id here
         k=config['inference'].get('k_step', 1)
     )

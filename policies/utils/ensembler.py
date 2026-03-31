@@ -18,7 +18,13 @@ class BatchedTemporalEnsembler:
         if t not in self.buffer:
             raise ValueError(f"No predictions found for timestep {t}")
 
-        preds = self.buffer[t]
+        preds = self.buffer.pop(t)
+
+        # Clean up any stray older timesteps just in case
+        for old_t in list(self.buffer.keys()):
+            if old_t < t:
+                self.buffer.pop(old_t)
+
         weighted_sum = sum(p[0] * p[1] for p in preds)
         total_weight = sum(p[1] for p in preds)
-        return weighted_sum / total_weight # Shape: (B, action_dim)
+        return weighted_sum / total_weight

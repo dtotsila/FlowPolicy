@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import math
 from models.embeddings import SinusoidalPositionEmbedding
 
 class DiTPolicy(nn.Module):
@@ -40,14 +39,13 @@ class DiTPolicy(nn.Module):
         self.output_proj = nn.Linear(hidden_dim, self.action_dim)
 
     def forward(self, noisy_actions, state, t, condition=None):
-        # Format t to ensure it's [B, 1]
-        if t.dim() == 1:
-            t = t.unsqueeze(1)
+        if t.dim() > 1:
+            t = t.squeeze()
 
         # Embed inputs and add sequence positional encoding to actions
         x = self.action_emb(noisy_actions) + self.pos_emb # [B, chunk_size, hidden_dim]
         s_emb = self.state_emb(state)                     # [B, hidden_dim]
-        t_emb = self.time_emb(t).squeeze(1)               # [B, hidden_dim]
+        t_emb = self.time_emb(t)                          # [B, hidden_dim]
 
         # Combine state and time
         cond_sum = s_emb + t_emb

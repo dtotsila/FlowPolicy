@@ -26,7 +26,7 @@ def train_one_epoch(policy, loader, normalizer, optimizer, device) -> float:
         loss = policy.compute_loss(action_chunk, state, condition=label.to(device))
         loss.backward()
         optimizer.step()
-        total_loss = + loss.item()
+        total_loss += loss.item()
     return total_loss / len(loader)
 
 

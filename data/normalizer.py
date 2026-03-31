@@ -2,8 +2,8 @@ import torch
 
 class Normalizer:
     def __init__(self):
-        self.mean = 0.0
-        self.std = 1.0
+        self.mean = torch.tensor(0.0)
+        self.std = torch.tensor(1.0)
 
     def fit(self, data):
         """Fits the mean and std to a given tensor of shape (N, ...)."""

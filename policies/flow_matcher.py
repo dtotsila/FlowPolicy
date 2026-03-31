@@ -29,7 +29,7 @@ class FlowMatcher(nn.Module):
         return loss
 
     @torch.no_grad()
-    def sample(self, state, chunk_size, action_dim, sampling_steps=10, condition=None, method="rk4", atol=1e-6, rtol=1e-6):
+    def sample(self, state, chunk_size, sampling_steps=10, condition=None, method="rk4", atol=1e-6, rtol=1e-6):
         if condition is not None:
             condition = condition.to(state.device, non_blocking=True)
 
@@ -40,8 +40,8 @@ class FlowMatcher(nn.Module):
             0.0, 1.0, sampling_steps+1, device=state.device)
 
         def ode_func(t, x_t):
-            _t = t.expand(x_t.size(0)).unsqueeze(-1)
-            v_t = self.model.forward(x_t, state, _t, condition)
+            _t = t.expand(x_t.size(0))
+            v_t = self.model(x_t, state, _t, condition)
             return v_t
 
         trajectory = odeint(ode_func, x_0, timesteps,
