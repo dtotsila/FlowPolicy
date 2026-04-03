@@ -19,29 +19,56 @@ from dataset.datasets import build_datasets
 def train_one_epoch(policy, loader, normalizer, optimizer, device) -> float:
     policy.train()
     total_loss = 0.0
-    for state, action_chunk, label in loader:
+
+    for batch in loader:
+        if len(batch) == 4:
+            state, action_chunk, image, label = batch
+            image = image.to(device)
+        else:
+            state, action_chunk, label = batch
+            image = None # Policy handles None internally
+
         state = normalizer.normalize('state', state.to(device))
         action_chunk = normalizer.normalize('action', action_chunk.to(device))
+
         optimizer.zero_grad()
-        loss = policy.compute_loss(action_chunk, state, condition=label.to(device))
+        loss = policy.compute_loss(
+            action_chunk,
+            state,
+            condition=label.to(device),
+            image=image
+        )
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    return total_loss / len(loader)
 
+    return total_loss / len(loader)
 
 @torch.no_grad()
 def evaluate(policy, loader, normalizer, device) -> float:
     policy.eval()
     total_loss = 0.0
-    for state, action_chunk, label in loader:
+
+    for batch in loader:
+        if len(batch) == 4:
+            state, action_chunk, image, label = batch
+            image = image.to(device)
+        else:
+            state, action_chunk, label = batch
+            image = None
+
         state = normalizer.normalize('state', state.to(device))
         action_chunk = normalizer.normalize('action', action_chunk.to(device))
-        loss = policy.compute_loss(action_chunk, state, condition=label.to(device))
+
+        loss = policy.compute_loss(
+            action_chunk,
+            state,
+            condition=label.to(device),
+            image=image
+        )
         total_loss += loss.item()
+
     return total_loss / len(loader)
-
-
 def save_checkpoint(model, normalizer, epoch, val_loss, path) -> None:
     torch.save(
         {
@@ -95,9 +122,9 @@ def main():
 
     policy = FlowMatcher(model).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["training"]["lr"], weight_decay=config["training"]["weight_decay"])
-
+    lr = config["training"]["lr"]
     epochs = config["training"]["epochs"]
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     # Checkpoint settings
     save_every = config["training"].get("save_every", 50) # Default to every 50 epochs
@@ -119,9 +146,9 @@ def main():
     for epoch in range(epochs):
         train_loss = train_one_epoch(policy, train_loader, normalizer, optimizer, device)
         val_loss = evaluate(policy, val_loader, normalizer, device)
-        scheduler.step()
+        # scheduler.step()
 
-        current_lr = scheduler.get_last_lr()[0]
+        current_lr = lr
         wandb.log({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "lr": current_lr})
 
         if epoch % 10 == 0 or epoch == epochs - 1:

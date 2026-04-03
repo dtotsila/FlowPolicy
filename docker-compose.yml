@@ -13,7 +13,7 @@ services:
     hostname: with_the_flow
     environment:
       - WANDB_API_KEY=${WANDB_API_KEY}
-      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=1
       - TERM=xterm-256color
     deploy:
       resources:

@@ -1,6 +1,8 @@
 import pyLasaDataset as lasa
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
+import io
+from PIL import Image
 import torch
 import numpy as np
 
