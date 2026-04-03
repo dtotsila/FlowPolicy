@@ -1,5 +1,6 @@
 import yaml
 
+
 def load_config(path: str)-> dict:
     with open(path) as f:
         return yaml.safe_load(f)
@@ -15,3 +16,6 @@ def build_run_name(config: dict) -> str:
     if config['dataset'].get('use_acceleration', False):
         name += "_acc"
     return name
+
+def beautify_run_name(run_name: str) -> str:
+    return run_name.replace(" ", "").replace("[", "").replace("]", "").replace("'", "").replace(",", "-")

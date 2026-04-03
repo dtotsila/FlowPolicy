@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torchdiffeq import odeint
 
-
 class FlowMatcher(nn.Module):
     def __init__(self, model):
         super().__init__()
@@ -12,7 +11,7 @@ class FlowMatcher(nn.Module):
             torch.ones(model.action_dim)
         )
 
-    def compute_loss(self, x1, state, condition=None):
+    def compute_loss(self, x1, state, condition=None, image=None):
         B = x1.shape[0]
         t = torch.rand(B, device=x1.device)
         x0 = torch.randn_like(x1)
@@ -21,17 +20,17 @@ class FlowMatcher(nn.Module):
         xt = (1 - t_expanded) * x0 + t_expanded * x1
 
         target_flow = x1 - x0
-
-        # Pass condition to the model
-        predicted_flow = self.model(xt, state, t, condition=condition)
+        predicted_flow = self.model(xt, state, t, condition=condition, image=image)
 
         loss = torch.nn.functional.mse_loss(predicted_flow, target_flow)
         return loss
 
     @torch.no_grad()
-    def sample(self, state, chunk_size, sampling_steps=10, condition=None, method="rk4", atol=1e-6, rtol=1e-6):
+    def sample(self, state, chunk_size, sampling_steps=10, condition=None, image=None, method="rk4", atol=1e-6, rtol=1e-6):
         if condition is not None:
             condition = condition.to(state.device, non_blocking=True)
+        if image is not None:
+            image = image.to(state.device, non_blocking=True)
 
         x_0 = self.source_dist.sample(
             (state.shape[0], chunk_size)).to(state.device)
@@ -41,7 +40,7 @@ class FlowMatcher(nn.Module):
 
         def ode_func(t, x_t):
             _t = t.expand(x_t.size(0))
-            v_t = self.model(x_t, state, _t, condition)
+            v_t = self.model(x_t, state, _t, condition=condition, image=image)
             return v_t
 
         trajectory = odeint(ode_func, x_0, timesteps,

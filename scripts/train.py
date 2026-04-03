@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.dit import DiTPolicy
 from policies.flow_matcher import FlowMatcher
-from utils.config import load_config, build_run_name
+from utils.config import load_config, build_run_name, beautify_run_name
 from utils.seed import set_seed
 from utils.visualization import plot_lasa_trajectories
 from data.normalizer import build_normalizer
@@ -54,7 +54,6 @@ def save_checkpoint(model, normalizer, epoch, val_loss, path) -> None:
     )
 
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Path to the YAML config file")
@@ -90,7 +89,8 @@ def main():
         hidden_dim=config['model']['hidden_dim'],
         num_layers=config['model']['num_layers'],
         num_heads=config['model']['num_heads'],
-        num_classes=config['model'].get('num_classes', None) # NEW
+        num_classes=config['model'].get('num_classes', None),
+        use_vision=config['dataset'].get('use_vision', False)
     ).to(device)
 
     policy = FlowMatcher(model).to(device)
@@ -99,10 +99,22 @@ def main():
     epochs = config["training"]["epochs"]
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
+    # Checkpoint settings
+    save_every = config["training"].get("save_every", 50) # Default to every 50 epochs
+
+
+    # Remove spaces, brackets, and quotes from the run name for safe folder creation
+    clean_run_name = beautify_run_name(run_name)
+
+    # Structure: weights/<dataset_name>/<clean_run_name>/
+    run_dir = os.path.join("weights", dataset_name, clean_run_name)
+    os.makedirs(run_dir, exist_ok=True)
+
+    best_ckpt_path = os.path.join(run_dir, "best.pt")
+    final_path = os.path.join(run_dir, "final.pt")
+
     # ── Training loop ───────────────────────────────────────────────────────
-    os.makedirs("weights", exist_ok=True)
     best_val_loss = float("inf")
-    best_ckpt_path = f"weights/{run_name}_best.pt"
 
     for epoch in range(epochs):
         train_loss = train_one_epoch(policy, train_loader, normalizer, optimizer, device)
@@ -118,13 +130,18 @@ def main():
                 f"Train: {train_loss:.4f} | Val: {val_loss:.4f} | LR: {current_lr:.2e}"
             )
 
+        # Save best model
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             save_checkpoint(model, normalizer, epoch, best_val_loss, best_ckpt_path)
             print(f"  -> Best model saved (val loss: {best_val_loss:.4f})")
 
+        # Save periodic checkpoints
+        if epoch > 0 and epoch % save_every == 0:
+            periodic_path = os.path.join(run_dir, f"epoch_{epoch:04d}.pt")
+            save_checkpoint(model, normalizer, epoch, val_loss, periodic_path)
+
     # ── Save final weights ──────────────────────────────────────────────────
-    final_path = f"weights/{config.get('project_name', dataset_name)}.pt"
     torch.save({"model": model.state_dict(), "normalizer": normalizer.state_dict()}, final_path)
     print(f"Training complete. Best validation loss: {best_val_loss:.4f}")
 

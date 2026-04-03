@@ -1,8 +1,8 @@
-project_name: "lasa_single_task"
+project_name: "lasa_multitask_3shapes"
 
 dataset:
-  name: "lasa"
-  pattern_names: "GShape"
+  name: "multitask_lasa"
+  pattern_names: ["GShape", "Sine", "Angle"]
   train_indices: [0, 1, 2, 3]
   val_indices: [4]
   test_indices: [5, 6]
@@ -13,16 +13,19 @@ dataset:
   use_acceleration: true
 
 model:
-  hidden_dim: 256
+  hidden_dim: 128
   num_layers: 4
   num_heads: 4
+  num_classes: 3
 
 training:
   batch_size: 128
   epochs: 1000
-  lr: 1.e-4
+  lr: 1.e-3
   device: "cuda"
   weight_decay: 0.
+  save_every: 20
+
 inference:
-  sampling_steps: 4
-  k_step: 4
+  sampling_steps: 10
+  k_step: 16
