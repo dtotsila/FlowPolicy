@@ -28,7 +28,7 @@ def render_trajectory_to_image(pos, size=(84, 84)):
 
 def create_robomimic_hdf5(output_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    pattern_names = [name for name in dir(lasa.DataSet) if not name.startswith('_')]
+    pattern_names = lasa.dataset.NAMES_
 
     with h5py.File(output_path, 'w') as h5f:
         data_grp = h5f.create_group("data")
@@ -49,6 +49,7 @@ def create_robomimic_hdf5(output_path):
 
                 pos = demo.pos.T.astype(np.float32)
                 vel = demo.vel.T.astype(np.float32)
+                acc = demo.acc.T.astype(np.float32)
                 num_samples = len(pos)
 
                 demo_grp.attrs["num_samples"] = num_samples
@@ -65,6 +66,7 @@ def create_robomimic_hdf5(output_path):
                 obs_grp = demo_grp.create_group("obs")
                 obs_grp.create_dataset("pos", data=pos)
                 obs_grp.create_dataset("vel", data=vel)
+                obs_grp.create_dataset("acc", data=acc)
 
                 # Generate a single 84x84 RGB image of the shape
                 img_array = render_trajectory_to_image(pos, size=(84, 84))

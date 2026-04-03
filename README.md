@@ -8,7 +8,7 @@ A PyTorch implementation of a Flow Matching policy using a Diffusion Transformer
 * `data/`: Dataset loaders, HDF5 parsers, and state/action normalizers.
 * `models/`: Neural network architectures, including the DiT backbone and vision encoders.
 * `policies/`: Formulations for continuous-time ODE policies (`flow_matcher.py`) and temporal ensembling.
-* `scripts/`: Executable scripts for data processing (`create_hdf5.py`), training (`train.py`), and deployment (`deploy_lasa.py`).
+* `scripts/`: Executable scripts for data processing (`create_hdf5.py`), visualization (`visualize_hdf5.py`), training (`train.py`), and deployment (`deploy_lasa.py`).
 * `utils/`: Helper functions for configuration parsing, visualization, and deterministic seeding.
 * `weights/`: Structured output directory for model checkpoints and periodic saves.
 
@@ -26,11 +26,22 @@ A PyTorch implementation of a Flow Matching policy using a Diffusion Transformer
    make build
    ```
 
-## Data Preparation !!!WIP!!!
+3. **Help Menu:**
+   You can view all available commands by running:
+   ```bash
+   make help
+   ```
+
+## Data Preparation
 
 Before training, generate the Robomimic-compatible HDF5 dataset (which includes synthesized images for vision conditioning):
 ```bash
-docker compose run --rm flow_matching python scripts/create_hdf5.py --output data/lasa_vision.hdf5
+make data-prepare
+```
+
+*Optional:* To verify the dataset and see a grid of the generated shapes and synthetic vision frames, run:
+```bash
+make viz-data
 ```
 
 ## Usage

@@ -11,6 +11,7 @@ dataset:
   state_dim: 6
   use_velocity: true
   use_acceleration: true
+  hdf5_path: "data/lasa_vision.hdf5"
 
 model:
   hidden_dim: 128
@@ -27,5 +28,5 @@ training:
   save_every: 20
 
 inference:
-  sampling_steps: 10
-  k_step: 16
+  sampling_steps: 4
+  k_step: 4

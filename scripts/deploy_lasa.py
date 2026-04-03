@@ -10,7 +10,7 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.config import load_config, build_run_name, beautify_run_name
-from data.normalizer import DictNormalizer
+from dataset.normalizer import DictNormalizer
 from utils.seed import set_seed
 from policies.utils.ensembler import BatchedTemporalEnsembler
 from policies.flow_matcher import FlowMatcher

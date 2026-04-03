@@ -7,3 +7,4 @@ opencv-python
 pylasadataset
 wandb
 torchdiffeq
+h5py

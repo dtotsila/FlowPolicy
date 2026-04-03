@@ -12,8 +12,8 @@ from policies.flow_matcher import FlowMatcher
 from utils.config import load_config, build_run_name, beautify_run_name
 from utils.seed import set_seed
 from utils.visualization import plot_lasa_trajectories
-from data.normalizer import build_normalizer
-from data.datasets import build_datasets
+from dataset.normalizer import build_normalizer
+from dataset.datasets import build_datasets
 
 
 def train_one_epoch(policy, loader, normalizer, optimizer, device) -> float:
